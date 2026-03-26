@@ -176,3 +176,8 @@ CLAUDE.md
 claude.md
 
 TZ.md
+
+# база данных
+*.db
+*.sqlite
+campus_jobs.db

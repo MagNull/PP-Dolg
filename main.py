@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+# главное приложение
 app = FastAPI(title="Поиск работы в кампусе")
 
 
