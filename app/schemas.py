@@ -22,6 +22,7 @@ class UserResponse(BaseModel):
     role: str
     faculty_id: Optional[int]
     created_at: datetime
+    employer_id: Optional[int] = None
 
 
 class Token(BaseModel):
@@ -32,7 +33,7 @@ class Token(BaseModel):
 class VacancyCreate(BaseModel):
     title: str = Field(min_length=3, max_length=200)
     description: str = Field(min_length=10, max_length=5000)
-    employer_id: int = Field(ge=1)
+    employer_id: Optional[int] = None  # берётся из JWT, не обязательно
     category_id: int = Field(ge=1)
     employment_type: str
     salary_from: Optional[int] = Field(default=None, ge=0)

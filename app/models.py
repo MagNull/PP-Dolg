@@ -11,7 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from database import Base, engine
+from app.database import Base, engine
 
 # модели базы данных
 
