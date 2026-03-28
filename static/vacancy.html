@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вакансия</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/index.html">Работа в кампусе</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/index.html">Вакансии</a>
+                <a class="nav-link" id="navLogin" href="/login.html">Войти</a>
+                <a class="nav-link d-none" id="navProfile" href="/profile.html">Профиль</a>
+                <a class="nav-link d-none" id="navLogout" href="#" onclick="logout(); return false;">Выйти</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="container mt-4">
+        <div id="errorMsg" class="alert alert-danger d-none"></div>
+        
+        <a href="/index.html">← Назад к вакансиям</a>
+        
+        <h2 id="vacancyTitle">Загрузка...</h2>
+        
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="card-title">Описание</h5>
+                <p id="vacancyDesc" class="card-text"></p>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Работодатель:</strong> <span id="vacancyEmployer"></span></p>
+                        <p><strong>Зарплата:</strong> <span id="vacancySalary"></span></p>
+                        <p><strong>Тип занятости:</strong> <span id="vacancyType"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Категория:</strong> <span id="vacancyCategory"></span></p>
+                        <p><strong>Навыки:</strong> <span id="vacancySkills"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Секция отклика -->
+        <div id="applySection" class="mt-4"></div>
+    </div>
+
+    <!-- Подвал -->
+    <footer class="text-center mt-5 py-3 text-muted">
+        <p>&copy; 2024 Работа в кампусе</p>
+    </footer>
+
+    <script src="/js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // получаем id из URL
+        function getVacancyId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
+        }
+
+        async function loadVacancy() {
+            const id = getVacancyId();
+            if (!id) {
+                window.location.href = '/index.html';
+                return;
+            }
+            const resp = await apiRequest('/api/vacancies/' + id);
+            if (!resp.ok) {
+                document.getElementById('errorMsg').textContent = 'Вакансия не найдена';
+                document.getElementById('errorMsg').classList.remove('d-none');
+                return;
+            }
+            const v = await resp.json();
+            
+            document.getElementById('vacancyTitle').textContent = v.title;
+            document.getElementById('vacancyDesc').textContent = v.description;
+            document.getElementById('vacancyEmployer').textContent = v.employer_name || '';
+            document.getElementById('vacancySalary').textContent = (v.salary_from || v.salary_to)
+                ? (v.salary_from || '?') + ' — ' + (v.salary_to || '?') + ' руб.'
+                : 'Не указана';
+            document.getElementById('vacancyType').textContent = v.employment_type;
+            document.getElementById('vacancyCategory').textContent = v.category_name || '';
+            document.getElementById('vacancySkills').textContent = v.skills ? v.skills.join(', ') : '';
+        }
+
+        async function setupApplySection() {
+            const applySection = document.getElementById('applySection');
+            if (!isLoggedIn()) {
+                applySection.innerHTML = '<p>Чтобы откликнуться, <a href="/login.html">войдите в систему</a></p>';
+                return;
+            }
+            const user = await getCurrentUser();
+            if (!user || user.role !== 'student') {
+                applySection.innerHTML = '';
+                return;
+            }
+            // форма отклика для студентов
+            applySection.innerHTML = '<h5>Откликнуться на вакансию</h5>' +
+                '<textarea id="coverLetter" class="form-control mb-2" rows="4" placeholder="Сопроводительное письмо (минимум 10 символов)"></textarea>' +
+                '<button id="applyBtn" class="btn btn-success">Откликнуться</button>' +
+                '<div id="applySuccess" class="alert alert-success d-none mt-2">Вы успешно откликнулись!</div>' +
+                '<div id="applyError" class="alert alert-danger d-none mt-2"></div>';
+            
+            document.getElementById('applyBtn').addEventListener('click', async function() {
+                const coverLetter = document.getElementById('coverLetter').value;
+                const vacancyId = parseInt(getVacancyId());
+                const resp = await apiRequest('/api/applications/', {
+                    method: 'POST',
+                    body: JSON.stringify({vacancy_id: vacancyId, cover_letter: coverLetter})
+                });
+                if (resp.ok) {
+                    document.getElementById('applySuccess').classList.remove('d-none');
+                    document.getElementById('applyBtn').disabled = true;
+                } else {
+                    const err = await resp.json();
+                    const errDiv = document.getElementById('applyError');
+                    errDiv.textContent = err.detail || 'Ошибка';
+                    errDiv.classList.remove('d-none');
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (isLoggedIn()) {
+                document.getElementById('navLogin').classList.add('d-none');
+                document.getElementById('navProfile').classList.remove('d-none');
+                document.getElementById('navLogout').classList.remove('d-none');
+            }
+            document.getElementById('navLogout').addEventListener('click', logout);
+            await loadVacancy();
+            await setupApplySection();
+        });
+    </script>
+</body>
+</html>
