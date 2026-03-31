@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator
+from typing import Optional, Literal
 from datetime import datetime
 
 # схемы валидации данных
@@ -10,7 +10,7 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=6, max_length=100)
     name: str = Field(min_length=2, max_length=100)
     faculty_id: Optional[int] = Field(default=None, ge=1)
-    role: str = Field(default="student")
+    role: Literal["student", "employer"] = "student"
 
 
 class UserResponse(BaseModel):
@@ -35,9 +35,17 @@ class VacancyCreate(BaseModel):
     description: str = Field(min_length=10, max_length=5000)
     employer_id: Optional[int] = None  # берётся из JWT, не обязательно
     category_id: int = Field(ge=1)
-    employment_type: str
-    salary_from: Optional[int] = Field(default=None, ge=0)
-    salary_to: Optional[int] = Field(default=None, ge=0)
+    employment_type: Literal["internship", "part_time", "full_time"]
+    salary_from: Optional[int] = Field(default=None, ge=0, le=1000000)
+    salary_to: Optional[int] = Field(default=None, ge=0, le=1000000)
+
+    # проверяем что salary_to >= salary_from
+    @model_validator(mode="after")
+    def check_salary_range(self):
+        if self.salary_from is not None and self.salary_to is not None:
+            if self.salary_to < self.salary_from:
+                raise ValueError("Максимальная зарплата не может быть меньше минимальной")
+        return self
 
 
 class VacancyResponse(BaseModel):
