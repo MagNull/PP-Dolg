@@ -55,6 +55,10 @@
                                     <option value="employer">Работодатель</option>
                                 </select>
                             </div>
+                            <div class="mb-3 d-none" id="companyBlock">
+                                <label for="companyName" class="form-label">Название компании</label>
+                                <input type="text" class="form-control" id="companyName" placeholder="ООО Компания">
+                            </div>
                             <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
                         </form>
                     </div>
@@ -117,7 +121,16 @@
             return true;
         }
 
-        // обновляем navbar при загрузке
+        // показываем поле компании если выбран работодатель
+        document.getElementById('role').addEventListener('change', function() {
+            const block = document.getElementById('companyBlock');
+            if (this.value === 'employer') {
+                block.classList.remove('d-none');
+            } else {
+                block.classList.add('d-none');
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             if (isLoggedIn()) {
                 document.getElementById('navLogin').classList.add('d-none');
@@ -132,12 +145,17 @@
                 return;
             }
 
+            const role = document.getElementById('role').value;
             const data = {
                 name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
                 password: document.getElementById('password').value,
-                role: document.getElementById('role').value
+                role: role
             };
+            if (role === 'employer') {
+                const companyName = document.getElementById('companyName').value.trim();
+                if (companyName) data.company_name = companyName;
+            }
             
             const response = await apiRequest('/api/auth/register', {
                 method: 'POST',

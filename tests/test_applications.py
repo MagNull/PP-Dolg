@@ -1,28 +1,21 @@
 # тесты для заявок на вакансии
 
 from tests.conftest import TestSessionLocal
-from app.models import Category, Employer, ApplicationStatus, User
+from app.models import Category, ApplicationStatus
 
 
 def _подготовить_данные():
-    """добавляем справочники и профиль работодателя"""
+    """добавляем справочники"""
     db = TestSessionLocal()
 
     cat = Category(name="IT")
     db.add(cat)
 
-    # без статуса заявки сервер вернёт 500
     app_status = ApplicationStatus(name="На рассмотрении")
     db.add(app_status)
 
     db.flush()
     cat_id = cat.id
-
-    # профиль работодателя
-    user = db.query(User).filter(User.email == "employer@example.com").first()
-    if user:
-        emp = Employer(user_id=user.id, company_name="Тест Компания")
-        db.add(emp)
 
     db.commit()
     db.close()

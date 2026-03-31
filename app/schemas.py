@@ -11,6 +11,7 @@ class UserCreate(BaseModel):
     name: str = Field(min_length=2, max_length=100)
     faculty_id: Optional[int] = Field(default=None, ge=1)
     role: Literal["student", "employer"] = "student"
+    company_name: Optional[str] = Field(default=None, min_length=2, max_length=200)
 
 
 class UserResponse(BaseModel):
@@ -68,7 +69,7 @@ class VacancyResponse(BaseModel):
 
 class ApplicationCreate(BaseModel):
     vacancy_id: int = Field(ge=1)
-    cover_letter: str = Field(min_length=10, max_length=2000)
+    cover_letter: Optional[str] = Field(default=None, max_length=2000)
 
 
 class ApplicationResponse(BaseModel):
@@ -78,7 +79,11 @@ class ApplicationResponse(BaseModel):
     vacancy_id: int
     vacancy_title: Optional[str] = None
     cover_letter: Optional[str]
+    status_id: Optional[int] = None
     status_name: Optional[str] = None
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+    user_faculty: Optional[str] = None
     created_at: datetime
 
 

@@ -22,7 +22,11 @@ def app_to_response(a):
         vacancy_id=a.vacancy_id,
         vacancy_title=a.vacancy.title if a.vacancy else None,
         cover_letter=a.cover_letter,
+        status_id=a.status_id,
         status_name=a.status.name if a.status else None,
+        user_name=a.user.name if a.user else None,
+        user_email=a.user.email if a.user else None,
+        user_faculty=a.user.faculty.name if a.user and a.user.faculty else None,
         created_at=a.created_at,
     )
 

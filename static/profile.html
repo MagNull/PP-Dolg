@@ -52,7 +52,58 @@
                         
                         <!-- Раздел работодателя -->
                         <div id="employerSection" class="d-none mt-4">
-                            <h5>Мои вакансии и заявки</h5>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>Мои вакансии и заявки</h5>
+                                <button type="button" class="btn btn-success" onclick="showCreateVacancyForm()">+ Создать вакансию</button>
+                            </div>
+                            
+                            <div id="createVacancyForm" class="card mb-4 d-none">
+                                <div class="card-body">
+                                    <h6>Новая вакансия</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Название <span class="text-danger">*</span></label>
+                                        <input type="text" id="vacTitle" class="form-control" placeholder="Например: Разработчик Python">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Описание <span class="text-danger">*</span></label>
+                                        <textarea id="vacDesc" class="form-control" rows="4" placeholder="Опишите требования и обязанности (минимум 10 символов)"></textarea>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Категория <span class="text-danger">*</span></label>
+                                            <select id="vacCategory" class="form-select">
+                                                <option value="">Выберите...</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Тип занятости <span class="text-danger">*</span></label>
+                                            <select id="vacType" class="form-select">
+                                                <option value="">Выберите...</option>
+                                                <option value="part_time">Частичная</option>
+                                                <option value="full_time">Полная</option>
+                                                <option value="internship">Стажировка</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Зарплата от (руб.)</label>
+                                            <input type="number" id="vacSalaryFrom" class="form-control" placeholder="необязательно">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Зарплата до (руб.)</label>
+                                            <input type="number" id="vacSalaryTo" class="form-control" placeholder="необязательно">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" onclick="createVacancy()">Создать</button>
+                                        <button type="button" class="btn btn-secondary" onclick="hideCreateVacancyForm()">Отмена</button>
+                                    </div>
+                                    <div id="vacError" class="alert alert-danger d-none mt-3"></div>
+                                    <div id="vacSuccess" class="alert alert-success d-none mt-3">Вакансия создана!</div>
+                                </div>
+                            </div>
+                            
                             <div id="employerVacancies"></div>
                         </div>
                     </div>
@@ -103,7 +154,12 @@
             }
         });
 
-        // раздел студента — мои заявки
+        function statusBadge(statusId, statusName) {
+            var colors = {1: 'warning', 2: 'info', 3: 'success', 4: 'danger'};
+            var color = colors[statusId] || 'secondary';
+            return '<span class="badge bg-' + color + '">' + escapeHtml(statusName || '') + '</span>';
+        }
+
         async function loadStudentSection() {
             document.getElementById('studentSection').classList.remove('d-none');
             const resp = await apiRequest('/api/applications/my');
@@ -118,7 +174,7 @@
             apps.forEach(function(a) {
                 tbody.innerHTML += '<tr>' +
                     '<td><a href="/vacancy.html?id=' + a.vacancy_id + '">' + escapeHtml(a.vacancy_title || 'Вакансия') + '</a></td>' +
-                    '<td>' + escapeHtml(a.status_name || '') + '</td>' +
+                    '<td>' + statusBadge(a.status_id, a.status_name) + '</td>' +
                     '<td>' + new Date(a.created_at).toLocaleDateString('ru-RU') + '</td>' +
                     '<td><button class="btn btn-sm btn-outline-danger" onclick="deleteApp(' + a.id + ', this)">Отозвать</button></td>' +
                     '</tr>';
@@ -133,19 +189,20 @@
             }
         }
 
-        // раздел работодателя — его вакансии и заявки
         async function loadEmployerSection(user) {
             document.getElementById('employerSection').classList.remove('d-none');
-            // employer_id берём из ответа /api/auth/me
             const employerId = user.employer_id;
             if (!employerId) {
-                document.getElementById('employerSection').innerHTML = '<p class="text-muted">Профиль работодателя не настроен</p>';
+                document.getElementById('employerVacancies').innerHTML = '<p class="text-muted">Профиль работодателя не настроен</p>';
                 return;
             }
-            
+            document.getElementById('employerVacancies').dataset.employerId = employerId;
+
             const resp = await apiRequest('/api/vacancies/?employer_id=' + employerId);
-            const vacancies = await resp.json();
+            const data = await resp.json();
+            const vacancies = data.items || [];
             const container = document.getElementById('employerVacancies');
+            container.innerHTML = '';
             
             if (vacancies.length === 0) {
                 container.innerHTML = '<p class="text-muted">Нет вакансий</p>';
@@ -154,41 +211,210 @@
             
             for (const v of vacancies) {
                 const vacBlock = document.createElement('div');
-                vacBlock.className = 'mb-4';
-                vacBlock.innerHTML = '<h6><a href="/vacancy.html?id=' + v.id + '">' + escapeHtml(v.title) + '</a></h6>';
-                
-                // загружаем заявки на эту вакансию
+                vacBlock.className = 'card mb-3';
+                var vacHeader = '<div class="card-header d-flex justify-content-between align-items-center">' +
+                    '<a href="/vacancy.html?id=' + v.id + '">' + escapeHtml(v.title) + '</a>' +
+                    '<button class="btn btn-sm btn-outline-danger" onclick="deleteVacancy(' + v.id + ', this)">Удалить</button>' +
+                    '</div>';
+                vacBlock.innerHTML = vacHeader;
+
+                var cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+
                 const appResp = await apiRequest('/api/applications/vacancy/' + v.id);
                 const apps = await appResp.json();
                 
                 if (apps.length === 0) {
-                    vacBlock.innerHTML += '<p class="text-muted small">Нет заявок</p>';
+                    cardBody.innerHTML = '<p class="text-muted small mb-0">Нет заявок</p>';
                 } else {
-                    let tableHtml = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Студент</th><th>Статус</th><th>Изменить статус</th></tr></thead><tbody>';
+                    var html = '';
                     apps.forEach(function(a) {
-                        tableHtml += '<tr>' +
-                            '<td>' + (a.vacancy_title || 'Заявка #' + a.id) + '</td>' +
-                            '<td id="status_' + a.id + '">' + (a.status_name || '') + '</td>' +
-                            '<td><select class="form-select form-select-sm" onchange="updateStatus(' + a.id + ', this.value)">' +
-                            '<option value="1">На рассмотрении</option>' +
-                            '<option value="2">Просмотрено</option>' +
-                            '<option value="3">Принято</option>' +
-                            '<option value="4">Отклонено</option>' +
-                            '</select></td>' +
-                            '</tr>';
+                        var sid = a.status_id || 1;
+                        html += '<div class="border rounded p-3 mb-2">' +
+                            '<div class="d-flex justify-content-between align-items-start">' +
+                            '<div>' +
+                            '<strong>' + escapeHtml(a.user_name || 'Студент') + '</strong>' +
+                            '<br><small class="text-muted">' + escapeHtml(a.user_email || '') + '</small>';
+                        if (a.user_faculty) {
+                            html += '<br><small class="text-muted">Факультет: ' + escapeHtml(a.user_faculty) + '</small>';
+                        }
+                        html += '</div>' +
+                            '<div>' + statusBadge(sid, a.status_name) + '</div>' +
+                            '</div>';
+                        if (a.cover_letter) {
+                            html += '<div class="mt-2 p-2 bg-light rounded"><small>' + escapeHtml(a.cover_letter) + '</small></div>';
+                        }
+                        html += '<div class="mt-2 d-flex gap-2">';
+                        if (sid !== 3) {
+                            html += '<button class="btn btn-sm btn-success" onclick="updateStatus(' + a.id + ', 3, this)">Принять</button>';
+                        }
+                        if (sid !== 4) {
+                            html += '<button class="btn btn-sm btn-danger" onclick="updateStatus(' + a.id + ', 4, this)">Отклонить</button>';
+                        }
+                        if (sid !== 2 && sid !== 3 && sid !== 4) {
+                            html += '<button class="btn btn-sm btn-outline-info" onclick="updateStatus(' + a.id + ', 2, this)">Просмотрено</button>';
+                        }
+                        html += '</div></div>';
                     });
-                    tableHtml += '</tbody></table></div>';
-                    vacBlock.innerHTML += tableHtml;
+                    cardBody.innerHTML = html;
                 }
+                vacBlock.appendChild(cardBody);
                 container.appendChild(vacBlock);
             }
         }
 
-        async function updateStatus(appId, statusId) {
-            await apiRequest('/api/applications/' + appId + '/status', {
+        async function updateStatus(appId, statusId, btn) {
+            const resp = await apiRequest('/api/applications/' + appId + '/status', {
                 method: 'PUT',
                 body: JSON.stringify({status_id: parseInt(statusId)})
             });
+            if (resp.ok) {
+                const user = await getCurrentUser();
+                loadEmployerSection(user);
+            }
+        }
+
+        async function deleteVacancy(vacId, btn) {
+            if (!confirm('Удалить вакансию?')) return;
+            const resp = await apiRequest('/api/vacancies/' + vacId, {method: 'DELETE'});
+            if (resp.ok) {
+                const user = await getCurrentUser();
+                loadEmployerSection(user);
+            }
+        }
+
+        // показываем форму создания вакансии и загружаем категории
+        async function showCreateVacancyForm() {
+            document.getElementById('createVacancyForm').classList.remove('d-none');
+            // загружаем категории если ещё не загружены
+            const sel = document.getElementById('vacCategory');
+            if (sel.options.length <= 1) {
+                const resp = await apiRequest('/api/categories');
+                const cats = await resp.json();
+                cats.forEach(function(c) {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    sel.appendChild(opt);
+                });
+            }
+        }
+
+        function hideCreateVacancyForm() {
+            document.getElementById('createVacancyForm').classList.add('d-none');
+            document.getElementById('vacError').classList.add('d-none');
+            document.getElementById('vacSuccess').classList.add('d-none');
+        }
+
+        async function createVacancy() {
+            const title = document.getElementById('vacTitle').value.trim();
+            const description = document.getElementById('vacDesc').value.trim();
+            const category_id = parseInt(document.getElementById('vacCategory').value);
+            const employment_type = document.getElementById('vacType').value;
+            const salary_from = document.getElementById('vacSalaryFrom').value;
+            const salary_to = document.getElementById('vacSalaryTo').value;
+
+            const errDiv = document.getElementById('vacError');
+            const successDiv = document.getElementById('vacSuccess');
+
+            // валидация с конкретными сообщениями
+            if (!title) {
+                errDiv.textContent = 'Укажите название вакансии';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacTitle').focus();
+                return;
+            }
+            if (title.length < 3) {
+                errDiv.textContent = 'Название вакансии должно содержать минимум 3 символа';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacTitle').focus();
+                return;
+            }
+            if (!description) {
+                errDiv.textContent = 'Укажите описание вакансии';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacDesc').focus();
+                return;
+            }
+            if (description.length < 10) {
+                errDiv.textContent = 'Описание должно содержать минимум 10 символов';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacDesc').focus();
+                return;
+            }
+            if (!category_id) {
+                errDiv.textContent = 'Выберите категорию';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacCategory').focus();
+                return;
+            }
+            if (!employment_type) {
+                errDiv.textContent = 'Выберите тип занятости';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacType').focus();
+                return;
+            }
+
+            const data = {
+                title: title,
+                description: description,
+                category_id: category_id,
+                employment_type: employment_type,
+                salary_from: salary_from ? parseInt(salary_from) : null,
+                salary_to: salary_to ? parseInt(salary_to) : null
+            };
+
+            const resp = await apiRequest('/api/vacancies/', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            if (resp.ok) {
+                errDiv.classList.add('d-none');
+                successDiv.classList.remove('d-none');
+                // очищаем форму
+                document.getElementById('vacTitle').value = '';
+                document.getElementById('vacDesc').value = '';
+                document.getElementById('vacCategory').value = '';
+                document.getElementById('vacType').value = '';
+                document.getElementById('vacSalaryFrom').value = '';
+                document.getElementById('vacSalaryTo').value = '';
+                // скрываем форму через 2 секунды и обновляем список
+                setTimeout(function() {
+                    hideCreateVacancyForm();
+                    loadEmployerSection({employer_id: document.getElementById('employerVacancies').dataset.employerId});
+                }, 1500);
+            } else {
+                const err = await resp.json();
+                let msg = 'Ошибка при создании вакансии';
+                // обрабатываем ошибки валидации от Pydantic
+                if (err.detail && Array.isArray(err.detail)) {
+                    const errors = [];
+                    for (const e of err.detail) {
+                        const field = e.loc && e.loc[e.loc.length - 1];
+                        if (field === 'title') {
+                            errors.push('Название: ' + (e.msg.includes('short') ? 'минимум 3 символа' : e.msg));
+                        } else if (field === 'description') {
+                            errors.push('Описание: ' + (e.msg.includes('short') ? 'минимум 10 символов' : e.msg));
+                        } else if (field === 'category_id') {
+                            errors.push('Выберите категорию');
+                        } else if (field === 'employment_type') {
+                            errors.push('Выберите тип занятости');
+                        } else if (field === 'salary_from' || field === 'salary_to') {
+                            errors.push('Зарплата: ' + e.msg);
+                        } else {
+                            errors.push(e.msg);
+                        }
+                    }
+                    if (errors.length > 0) {
+                        msg = errors.join('; ');
+                    }
+                } else if (typeof err.detail === 'string') {
+                    msg = err.detail;
+                }
+                errDiv.textContent = msg;
+                errDiv.classList.remove('d-none');
+            }
         }
     </script>
 </body>

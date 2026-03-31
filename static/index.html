@@ -119,7 +119,7 @@
                         '<p class="card-text text-muted">' + escapeHtml(v.employer_name || '') + '</p>' +
                         '<p class="card-text">' + escapeHtml(v.category_name || '') + '</p>' +
                         '<p class="card-text small">' + escapeHtml(salary) + '</p>' +
-                        '<span class="badge bg-secondary">' + escapeHtml(v.employment_type) + '</span>' +
+                        '<span class="badge bg-secondary">' + escapeHtml(employmentTypeLabel(v.employment_type)) + '</span>' +
                         '</div><div class="card-footer">' +
                         '<a href="/vacancy.html?id=' + v.id + '" class="btn btn-primary btn-sm">Подробнее</a>' +
                         '</div></div></div>';

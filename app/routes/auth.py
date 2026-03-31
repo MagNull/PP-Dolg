@@ -7,7 +7,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User
+from app.models import User, Employer
 from app.schemas import UserCreate, UserResponse, Token
 
 # настройки JWT
@@ -79,6 +79,14 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         faculty_id=user_data.faculty_id,
     )
     db.add(new_user)
+    db.flush()
+
+    # если работодатель — создаём профиль компании
+    if user_data.role == "employer":
+        company = user_data.company_name or user_data.name
+        employer = Employer(user_id=new_user.id, company_name=company)
+        db.add(employer)
+
     db.commit()
     db.refresh(new_user)
 

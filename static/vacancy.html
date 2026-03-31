@@ -88,7 +88,7 @@
             document.getElementById('vacancySalary').textContent = (v.salary_from || v.salary_to)
                 ? (v.salary_from || '?') + ' — ' + (v.salary_to || '?') + ' руб.'
                 : 'Не указана';
-            document.getElementById('vacancyType').textContent = v.employment_type;
+            document.getElementById('vacancyType').textContent = employmentTypeLabel(v.employment_type);
             document.getElementById('vacancyCategory').textContent = v.category_name || '';
             document.getElementById('vacancySkills').textContent = v.skills ? v.skills.join(', ') : '';
         }
@@ -104,15 +104,28 @@
                 applySection.innerHTML = '';
                 return;
             }
-            // форма отклика для студентов
+
+            // проверяем, не подавал ли уже заявку
+            const myAppsResp = await apiRequest('/api/applications/my');
+            if (myAppsResp.ok) {
+                const myApps = await myAppsResp.json();
+                const vacId = parseInt(getVacancyId());
+                const existing = myApps.find(function(a) { return a.vacancy_id === vacId; });
+                if (existing) {
+                    applySection.innerHTML = '<div class="alert alert-info">Вы уже откликнулись на эту вакансию. Статус: <strong>' + escapeHtml(existing.status_name || '') + '</strong></div>';
+                    return;
+                }
+            }
+
             applySection.innerHTML = '<h5>Откликнуться на вакансию</h5>' +
-                '<textarea id="coverLetter" class="form-control mb-2" rows="4" placeholder="Сопроводительное письмо (минимум 10 символов)"></textarea>' +
-                '<button id="applyBtn" class="btn btn-success">Откликнуться</button>' +
+                '<textarea id="coverLetter" class="form-control mb-2" rows="4" placeholder="Сопроводительное письмо (необязательно, максимум 2000 символов)"></textarea>' +
+                '<button type="button" id="applyBtn" class="btn btn-success">Откликнуться</button>' +
                 '<div id="applySuccess" class="alert alert-success d-none mt-2">Вы успешно откликнулись!</div>' +
                 '<div id="applyError" class="alert alert-danger d-none mt-2"></div>';
             
             document.getElementById('applyBtn').addEventListener('click', async function() {
-                const coverLetter = document.getElementById('coverLetter').value;
+                var coverLetter = document.getElementById('coverLetter').value.trim();
+                if (!coverLetter) coverLetter = null;
                 const vacancyId = parseInt(getVacancyId());
                 const resp = await apiRequest('/api/applications/', {
                     method: 'POST',
@@ -121,6 +134,7 @@
                 if (resp.ok) {
                     document.getElementById('applySuccess').classList.remove('d-none');
                     document.getElementById('applyBtn').disabled = true;
+                    document.getElementById('coverLetter').disabled = true;
                 } else {
                     const err = await resp.json();
                     const errDiv = document.getElementById('applyError');

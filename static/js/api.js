@@ -66,3 +66,13 @@ function logout() {
     removeToken();
     window.location.href = "/login.html";
 }
+
+// русские названия типов занятости
+function employmentTypeLabel(type) {
+    var labels = {
+        'part_time': 'Частичная занятость',
+        'full_time': 'Полная занятость',
+        'internship': 'Стажировка'
+    };
+    return labels[type] || type;
+}

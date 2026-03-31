@@ -19,7 +19,12 @@ def test_register_short_name(client):
     """имя меньше 2 символов"""
     resp = client.post(
         "/api/auth/register",
-        json={"email": "a@b.com", "password": "password123", "name": "А", "role": "student"},
+        json={
+            "email": "a@b.com",
+            "password": "password123",
+            "name": "А",
+            "role": "student",
+        },
     )
     assert resp.status_code == 422
 
@@ -28,7 +33,12 @@ def test_register_invalid_role(client):
     """недопустимая роль — ошибка"""
     resp = client.post(
         "/api/auth/register",
-        json={"email": "a@b.com", "password": "password123", "name": "Тест", "role": "admin"},
+        json={
+            "email": "a@b.com",
+            "password": "password123",
+            "name": "Тест",
+            "role": "admin",
+        },
     )
     assert resp.status_code == 422
     data = resp.json()
@@ -47,17 +57,14 @@ def test_register_missing_fields(client):
 def test_vacancy_invalid_employment_type(client, employer_token):
     """неверный тип занятости"""
     from tests.conftest import TestSessionLocal
-    from app.models import Category, Employer, User
+    from app.models import Category
 
     db = TestSessionLocal()
     cat = Category(name="Тест")
     db.add(cat)
     db.flush()
-    user = db.query(User).filter(User.email == "employer@example.com").first()
-    if user:
-        db.add(Employer(user_id=user.id, company_name="Компания"))
-    db.commit()
     cat_id = cat.id
+    db.commit()
     db.close()
 
     headers = {"Authorization": f"Bearer {employer_token}"}
@@ -130,15 +137,14 @@ def test_vacancy_salary_range_invalid(client, employer_token):
     assert resp.status_code == 422
 
 
-def test_application_short_cover_letter(client, auth_token):
-    """сопроводительное письмо меньше 10 символов"""
+def test_application_empty_cover_letter_valid(client, auth_token):
     headers = {"Authorization": f"Bearer {auth_token}"}
     resp = client.post(
         "/api/applications/",
-        json={"vacancy_id": 1, "cover_letter": "Привет"},
+        json={"vacancy_id": 1, "cover_letter": ""},
         headers=headers,
     )
-    assert resp.status_code == 422
+    assert resp.status_code != 422
 
 
 def test_review_rating_out_of_range(client, auth_token):
