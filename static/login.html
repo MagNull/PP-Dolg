@@ -35,7 +35,7 @@
                     </div>
                     <div class="card-body">
                         <div id="error" class="alert alert-danger d-none"></div>
-                        <form id="loginForm">
+                        <form id="loginForm" novalidate>
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email</label>
                                 <input type="email" class="form-control" id="email" name="email" required>
@@ -58,6 +58,34 @@
     <script src="/js/api.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function validateLoginForm() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+
+            if (!email) {
+                errorDiv.textContent = 'Заполните поле: Email';
+                errorDiv.classList.remove('d-none');
+                return false;
+            }
+
+            // проверяем что email содержит @
+            if (email.indexOf('@') === -1) {
+                errorDiv.textContent = 'Введите корректный email';
+                errorDiv.classList.remove('d-none');
+                return false;
+            }
+
+            if (!password) {
+                errorDiv.textContent = 'Заполните поле: Пароль';
+                errorDiv.classList.remove('d-none');
+                return false;
+            }
+
+            errorDiv.classList.add('d-none');
+            return true;
+        }
+
         // обновляем navbar при загрузке
         document.addEventListener('DOMContentLoaded', function() {
             if (isLoggedIn()) {
@@ -68,6 +96,11 @@
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            if (!validateLoginForm()) {
+                return;
+            }
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('error');

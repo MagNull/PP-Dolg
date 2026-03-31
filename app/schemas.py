@@ -44,7 +44,9 @@ class VacancyCreate(BaseModel):
     def check_salary_range(self):
         if self.salary_from is not None and self.salary_to is not None:
             if self.salary_to < self.salary_from:
-                raise ValueError("Максимальная зарплата не может быть меньше минимальной")
+                raise ValueError(
+                    "Максимальная зарплата не может быть меньше минимальной"
+                )
         return self
 
 
@@ -115,3 +117,8 @@ class FacultyResponse(BaseModel):
 
     id: int
     name: str
+
+
+class VacancyListResponse(BaseModel):
+    items: list[VacancyResponse]
+    total: int

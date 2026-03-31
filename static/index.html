@@ -98,11 +98,15 @@
             if (type) url += '&employment_type=' + type;
             if (search) url += '&search=' + encodeURIComponent(search);
             const resp = await apiRequest(url);
-            const list = await resp.json();
+            const data = await resp.json();
+            const list = data.items || [];
+            const total = data.total || 0;
             const cont = document.getElementById('vacancies');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
             if (reset) cont.innerHTML = '';
             if (list.length === 0 && currentSkip === 0) {
                 document.getElementById('empty').classList.remove('d-none');
+                loadMoreBtn.classList.add('d-none');
             } else {
                 document.getElementById('empty').classList.add('d-none');
                 list.forEach(function(v) {
@@ -121,6 +125,12 @@
                         '</div></div></div>';
                 });
                 currentSkip += list.length;
+                // скрываем кнопку если все вакансии загружены
+                if (currentSkip >= total) {
+                    loadMoreBtn.classList.add('d-none');
+                } else {
+                    loadMoreBtn.classList.remove('d-none');
+                }
             }
         }
 

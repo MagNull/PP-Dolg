@@ -23,10 +23,29 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
             "сообщение": err["msg"],
             "тип_ошибки": err["type"],
         })
+
+    detail = "Проверьте введённые данные"
+    if errors:
+        first_error = errors[0]
+        field = first_error["поле"]
+        error_type = first_error["тип_ошибки"]
+
+        if field == "email":
+            detail = "Введите корректный email"
+        elif field == "password" and "too_short" in error_type:
+            detail = "Пароль должен быть не короче 6 символов"
+        elif field == "name" and "too_short" in error_type:
+            detail = "Имя должно быть не короче 2 символов"
+        elif "missing" in error_type:
+            if field:
+                detail = f"Заполните поле: {field}"
+            else:
+                detail = "Заполните обязательные поля"
+
     return JSONResponse(
         status_code=422,
         content={
-            "detail": "Ошибка валидации данных",
+            "detail": detail,
             "errors": errors,
         },
     )

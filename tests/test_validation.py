@@ -172,7 +172,7 @@ def test_validation_error_format(client):
     assert resp.status_code == 422
     data = resp.json()
     # наш кастомный формат
-    assert data["detail"] == "Ошибка валидации данных"
+    assert data["detail"] == "Введите корректный email"
     assert "errors" in data
     assert isinstance(data["errors"], list)
     # каждая ошибка имеет нужные поля

@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.database import get_db
 from app.models import Vacancy, User
-from app.schemas import VacancyCreate, VacancyResponse
+from app.schemas import VacancyCreate, VacancyResponse, VacancyListResponse
 from app.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/vacancies", tags=["vacancies"])
@@ -28,7 +28,7 @@ def vacancy_to_response(v: Vacancy) -> VacancyResponse:
 
 
 # получаем список вакансий с фильтрами
-@router.get("/", response_model=list[VacancyResponse])
+@router.get("/", response_model=VacancyListResponse)
 def get_vacancies(
     category_id: Optional[int] = None,
     employment_type: Optional[str] = None,
@@ -50,8 +50,11 @@ def get_vacancies(
     if search:
         query = query.filter(Vacancy.title.ilike(f"%{search}%"))
 
+    total = query.count()
     vacancies = query.offset(skip).limit(limit).all()
-    return [vacancy_to_response(v) for v in vacancies]
+    return VacancyListResponse(
+        items=[vacancy_to_response(v) for v in vacancies], total=total
+    )
 
 
 # получаем вакансию по id
