@@ -169,6 +169,3 @@ class Review(Base):
     user = relationship("User", back_populates="reviews")
     vacancy = relationship("Vacancy", back_populates="reviews")
 
-
-# создаём таблицы
-Base.metadata.create_all(bind=engine)

@@ -35,11 +35,15 @@ async function apiRequest(url, options = {}) {
         delete headers["Content-Type"];
     }
     
+    console.log("[API]", options.method || "GET", url);
+
     const response = await fetch(API_BASE + url, {
         ...options,
         headers
     });
     
+    console.log("[API]", response.status, url);
+
     return response;
 }
 
