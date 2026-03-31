@@ -39,6 +39,7 @@ class VacancyCreate(BaseModel):
     employment_type: Literal["internship", "part_time", "full_time"]
     salary_from: Optional[int] = Field(default=None, ge=0, le=1000000)
     salary_to: Optional[int] = Field(default=None, ge=0, le=1000000)
+    skill_ids: Optional[list[int]] = None
 
     # проверяем что salary_to >= salary_from
     @model_validator(mode="after")
@@ -65,6 +66,8 @@ class VacancyResponse(BaseModel):
     employer_name: Optional[str] = None
     category_name: Optional[str] = None
     skills: list = []
+    my_status_id: Optional[int] = None
+    my_status_name: Optional[str] = None
 
 
 class ApplicationCreate(BaseModel):

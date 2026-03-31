@@ -6,6 +6,34 @@
     <title>Профиль</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .skill-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: #0d6efd;
+            color: white;
+            border-radius: 16px;
+            font-size: 14px;
+            margin: 0 6px 6px 0;
+        }
+        .skill-tag .remove-btn {
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+        .skill-tag .remove-btn:hover {
+            opacity: 1;
+        }
+        #vacSkillsDropdown.show {
+            display: block;
+        }
+        #vacSkillsDropdown .dropdown-item:hover,
+        #vacSkillsDropdown .dropdown-item:focus {
+            background-color: #e9ecef;
+        }
+    </style>
 </head>
 <body>
     <!-- Навигация -->
@@ -94,6 +122,15 @@
                                             <label class="form-label">Зарплата до (руб.)</label>
                                             <input type="number" id="vacSalaryTo" class="form-control" placeholder="необязательно">
                                         </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Навыки</label>
+                                        <div id="vacSkillsTags" class="mb-2"></div>
+                                        <div class="position-relative">
+                                            <input type="text" id="vacSkillsInput" class="form-control" placeholder="Начните вводить навык..." autocomplete="off">
+                                            <div id="vacSkillsDropdown" class="dropdown-menu w-100" style="max-height: 200px; overflow-y: auto;"></div>
+                                        </div>
+                                        <input type="hidden" id="vacSkillsIds">
                                     </div>
                                     <div class="d-flex gap-2">
                                         <button type="button" class="btn btn-primary" onclick="createVacancy()">Создать</button>
@@ -212,13 +249,13 @@
             for (const v of vacancies) {
                 const vacBlock = document.createElement('div');
                 vacBlock.className = 'card mb-3';
-                var vacHeader = '<div class="card-header d-flex justify-content-between align-items-center">' +
+                let vacHeader = '<div class="card-header d-flex justify-content-between align-items-center">' +
                     '<a href="/vacancy.html?id=' + v.id + '">' + escapeHtml(v.title) + '</a>' +
                     '<button class="btn btn-sm btn-outline-danger" onclick="deleteVacancy(' + v.id + ', this)">Удалить</button>' +
                     '</div>';
                 vacBlock.innerHTML = vacHeader;
 
-                var cardBody = document.createElement('div');
+                let cardBody = document.createElement('div');
                 cardBody.className = 'card-body';
 
                 const appResp = await apiRequest('/api/applications/vacancy/' + v.id);
@@ -227,7 +264,7 @@
                 if (apps.length === 0) {
                     cardBody.innerHTML = '<p class="text-muted small mb-0">Нет заявок</p>';
                 } else {
-                    var html = '';
+                    let html = '';
                     apps.forEach(function(a) {
                         var sid = a.status_id || 1;
                         html += '<div class="border rounded p-3 mb-2">' +
@@ -266,7 +303,7 @@
         async function updateStatus(appId, statusId, btn) {
             const resp = await apiRequest('/api/applications/' + appId + '/status', {
                 method: 'PUT',
-                body: JSON.stringify({status_id: parseInt(statusId)})
+                body: JSON.stringify({status_id: parseInt(statusId, 10)})
             });
             if (resp.ok) {
                 const user = await getCurrentUser();
@@ -298,6 +335,103 @@
                     sel.appendChild(opt);
                 });
             }
+
+            // загружаем навыки для тег-селектора
+            await initSkillsSelector();
+        }
+
+        // данные навыков для селектора
+        let allSkills = [];
+        let selectedSkills = [];
+
+        // инициализация селектора навыков
+        async function initSkillsSelector() {
+            if (allSkills.length === 0) {
+                const resp = await apiRequest('/api/skills');
+                allSkills = await resp.json();
+            }
+
+            const input = document.getElementById('vacSkillsInput');
+            const dropdown = document.getElementById('vacSkillsDropdown');
+
+            // показываем dropdown при фокусе
+            input.addEventListener('focus', function() {
+                showSkillsDropdown();
+            });
+
+            // фильтруем при вводе
+            input.addEventListener('input', function() {
+                showSkillsDropdown(this.value);
+            });
+
+            // скрываем dropdown при клике вне
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
+
+        // показываем dropdown с навыками
+        function showSkillsDropdown(filter) {
+            const dropdown = document.getElementById('vacSkillsDropdown');
+            const filterLower = filter ? filter.toLowerCase() : '';
+
+            // фильтруем навыки: не выбранные и подходящие под поиск
+            const availableSkills = allSkills.filter(function(skill) {
+                const notSelected = !selectedSkills.find(function(s) { return s.id === skill.id; });
+                const matchesFilter = !filterLower || skill.name.toLowerCase().includes(filterLower);
+                return notSelected && matchesFilter;
+            });
+
+            if (availableSkills.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item text-muted">Ничего не найдено</div>';
+            } else {
+                dropdown.innerHTML = availableSkills.map(function(skill) {
+                    return '<div class="dropdown-item" onclick="addSkillTag(' + skill.id + ', \'' + escapeHtml(skill.name) + '\')">' + escapeHtml(skill.name) + '</div>';
+                }).join('');
+            }
+
+            dropdown.classList.add('show');
+        }
+
+        // добавляем тег навыка
+        function addSkillTag(skillId, skillName) {
+            if (selectedSkills.find(function(s) { return s.id === skillId; })) {
+                return; // уже выбран
+            }
+
+            selectedSkills.push({ id: skillId, name: skillName });
+            renderSkillTags();
+
+            // очищаем поле и скрываем dropdown
+            document.getElementById('vacSkillsInput').value = '';
+            document.getElementById('vacSkillsDropdown').classList.remove('show');
+        }
+
+        // удаляем тег навыка
+        function removeSkillTag(skillId) {
+            selectedSkills = selectedSkills.filter(function(s) { return s.id !== skillId; });
+            renderSkillTags();
+        }
+
+        // отрисовываем теги
+        function renderSkillTags() {
+            const container = document.getElementById('vacSkillsTags');
+            if (selectedSkills.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = selectedSkills.map(function(skill) {
+                return '<span class="skill-tag">' + escapeHtml(skill.name) + '<span class="remove-btn" onclick="removeSkillTag(' + skill.id + ')">&times;</span></span>';
+            }).join('');
+        }
+
+        // очищаем все выбранные навыки
+        function clearSelectedSkills() {
+            selectedSkills = [];
+            renderSkillTags();
         }
 
         function hideCreateVacancyForm() {
@@ -309,10 +443,11 @@
         async function createVacancy() {
             const title = document.getElementById('vacTitle').value.trim();
             const description = document.getElementById('vacDesc').value.trim();
-            const category_id = parseInt(document.getElementById('vacCategory').value);
+            const category_id = parseInt(document.getElementById('vacCategory').value, 10);
             const employment_type = document.getElementById('vacType').value;
             const salary_from = document.getElementById('vacSalaryFrom').value;
             const salary_to = document.getElementById('vacSalaryTo').value;
+            const skill_ids = selectedSkills.map(function(s) { return s.id; });
 
             const errDiv = document.getElementById('vacError');
             const successDiv = document.getElementById('vacSuccess');
@@ -360,8 +495,9 @@
                 description: description,
                 category_id: category_id,
                 employment_type: employment_type,
-                salary_from: salary_from ? parseInt(salary_from) : null,
-                salary_to: salary_to ? parseInt(salary_to) : null
+                salary_from: salary_from ? parseInt(salary_from, 10) : null,
+                salary_to: salary_to ? parseInt(salary_to, 10) : null,
+                skill_ids: skill_ids
             };
 
             const resp = await apiRequest('/api/vacancies/', {
@@ -379,6 +515,7 @@
                 document.getElementById('vacType').value = '';
                 document.getElementById('vacSalaryFrom').value = '';
                 document.getElementById('vacSalaryTo').value = '';
+                clearSelectedSkills();
                 // скрываем форму через 2 секунды и обновляем список
                 setTimeout(function() {
                     hideCreateVacancyForm();

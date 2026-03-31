@@ -32,7 +32,10 @@
         
         <a href="/index.html">← Назад к вакансиям</a>
         
-        <h2 id="vacancyTitle">Загрузка...</h2>
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+            <h2 id="vacancyTitle">Загрузка...</h2>
+            <div id="vacancyStatus"></div>
+        </div>
         
         <div class="card vacancy-card mt-3">
             <div class="card-body">
@@ -91,10 +94,24 @@
             document.getElementById('vacancyType').textContent = employmentTypeLabel(v.employment_type);
             document.getElementById('vacancyCategory').textContent = v.category_name || '';
             document.getElementById('vacancySkills').textContent = v.skills ? v.skills.join(', ') : '';
+
+            const statusBox = document.getElementById('vacancyStatus');
+            if (v.my_status_id) {
+                statusBox.innerHTML = '<span class="badge fs-6 bg-' + applicationStatusClass(v.my_status_id) + '">' +
+                    escapeHtml(applicationStatusText(v.my_status_id, v.my_status_name)) + '</span>';
+            } else {
+                statusBox.innerHTML = '';
+            }
+
+            return v;
         }
 
-        async function setupApplySection() {
+        async function setupApplySection(vacancy) {
             const applySection = document.getElementById('applySection');
+            if (!vacancy) {
+                applySection.innerHTML = '';
+                return;
+            }
             if (!isLoggedIn()) {
                 applySection.innerHTML = '<p>Чтобы откликнуться, <a href="/login.html">войдите в систему</a></p>';
                 return;
@@ -105,16 +122,25 @@
                 return;
             }
 
-            // проверяем, не подавал ли уже заявку
-            const myAppsResp = await apiRequest('/api/applications/my');
-            if (myAppsResp.ok) {
-                const myApps = await myAppsResp.json();
-                const vacId = parseInt(getVacancyId());
-                const existing = myApps.find(function(a) { return a.vacancy_id === vacId; });
-                if (existing) {
-                    applySection.innerHTML = '<div class="alert alert-info">Вы уже откликнулись на эту вакансию. Статус: <strong>' + escapeHtml(existing.status_name || '') + '</strong></div>';
-                    return;
+            if (vacancy.my_status_id) {
+                let alertClass = 'info';
+                let text = 'Вы уже откликнулись на эту вакансию';
+
+                if (vacancy.my_status_id === 3) {
+                    alertClass = 'success';
+                    text = 'Ваш отклик одобрен';
                 }
+                if (vacancy.my_status_id === 4) {
+                    alertClass = 'danger';
+                    text = 'По вашему отклику пришёл отказ';
+                }
+                if (vacancy.my_status_id === 2) {
+                    alertClass = 'info';
+                    text = 'Ваш отклик уже просмотрен работодателем';
+                }
+
+                applySection.innerHTML = '<div class="alert alert-' + alertClass + '">' + text + '</div>';
+                return;
             }
 
             applySection.innerHTML = '<h5>Откликнуться на вакансию</h5>' +
@@ -126,15 +152,16 @@
             document.getElementById('applyBtn').addEventListener('click', async function() {
                 var coverLetter = document.getElementById('coverLetter').value.trim();
                 if (!coverLetter) coverLetter = null;
-                const vacancyId = parseInt(getVacancyId());
+                const vacancyId = parseInt(getVacancyId(), 10);
                 const resp = await apiRequest('/api/applications/', {
                     method: 'POST',
                     body: JSON.stringify({vacancy_id: vacancyId, cover_letter: coverLetter})
                 });
                 if (resp.ok) {
-                    document.getElementById('applySuccess').classList.remove('d-none');
-                    document.getElementById('applyBtn').disabled = true;
-                    document.getElementById('coverLetter').disabled = true;
+                    const app = await resp.json();
+                    document.getElementById('vacancyStatus').innerHTML = '<span class="badge fs-6 bg-' + applicationStatusClass(app.status_id) + '">' +
+                        escapeHtml(applicationStatusText(app.status_id, app.status_name)) + '</span>';
+                    applySection.innerHTML = '<div class="alert alert-info">Вы уже откликнулись на эту вакансию</div>';
                 } else {
                     const err = await resp.json();
                     const errDiv = document.getElementById('applyError');
@@ -151,8 +178,8 @@
                 document.getElementById('navLogout').classList.remove('d-none');
             }
             document.getElementById('navLogout').addEventListener('click', logout);
-            await loadVacancy();
-            await setupApplySection();
+            const vacancy = await loadVacancy();
+            await setupApplySection(vacancy);
         });
     </script>
 </body>

@@ -47,7 +47,7 @@
                 <input id="searchInput" type="text" class="form-control" placeholder="Поиск по названию">
             </div>
             <div class="col-md-2">
-                <button type="button" onclick="loadVacancies(true)" class="btn btn-primary w-100">Найти</button>
+                <button type="button" id="resetFiltersBtn" class="btn btn-outline-secondary w-100">Сбросить</button>
             </div>
         </div>
 
@@ -69,11 +69,36 @@
         let currentSkip = 0;
         const limit = 10;
 
-        // экранируем HTML чтобы не было XSS
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function vacancyStatusHtml(v) {
+            if (!v.my_status_id) return '';
+
+            const badgeClass = applicationStatusClass(v.my_status_id);
+            const statusText = applicationStatusText(v.my_status_id, v.my_status_name);
+            let note = 'Вы уже откликнулись';
+
+            if (v.my_status_id === 3) note = 'Работодатель одобрил отклик';
+            if (v.my_status_id === 4) note = 'Работодатель отказал';
+            if (v.my_status_id === 2) note = 'Работодатель просмотрел отклик';
+
+            return '<div class="mt-2">' +
+                '<span class="badge bg-' + badgeClass + '">' + escapeHtml(statusText) + '</span>' +
+                '<div class="small mt-1 text-muted">' + escapeHtml(note) + '</div>' +
+                '</div>';
+        }
+
+        function vacancyCardClass(v) {
+            if (v.my_status_id === 3) return ' border-success';
+            if (v.my_status_id === 4) return ' border-danger';
+            if (v.my_status_id === 2) return ' border-info';
+            if (v.my_status_id === 1) return ' border-warning';
+            return '';
+        }
+
+        function resetFilters() {
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('searchInput').value = '';
+            loadVacancies(true);
         }
 
         async function loadCategories() {
@@ -113,13 +138,14 @@
                     const salary = (v.salary_from || v.salary_to)
                         ? (v.salary_from || '?') + ' — ' + (v.salary_to || '?') + ' руб.'
                         : 'Зарплата не указана';
-                    cont.innerHTML += '<div class="col-12 col-md-6 col-lg-4"><div class="card vacancy-card h-100">' +
+                    cont.innerHTML += '<div class="col-12 col-md-6 col-lg-4"><div class="card vacancy-card h-100' + vacancyCardClass(v) + '">' +
                         '<div class="card-body">' +
                         '<h5 class="card-title">' + escapeHtml(v.title) + '</h5>' +
                         '<p class="card-text text-muted">' + escapeHtml(v.employer_name || '') + '</p>' +
                         '<p class="card-text">' + escapeHtml(v.category_name || '') + '</p>' +
                         '<p class="card-text small">' + escapeHtml(salary) + '</p>' +
                         '<span class="badge bg-secondary">' + escapeHtml(employmentTypeLabel(v.employment_type)) + '</span>' +
+                        vacancyStatusHtml(v) +
                         '</div><div class="card-footer">' +
                         '<a href="/vacancy.html?id=' + v.id + '" class="btn btn-primary btn-sm">Подробнее</a>' +
                         '</div></div></div>';
@@ -135,12 +161,27 @@
         }
 
         document.addEventListener('DOMContentLoaded', async function() {
+            let searchTimer = null;
+
             if (isLoggedIn()) {
                 document.getElementById('navLogin').classList.add('d-none');
                 document.getElementById('navProfile').classList.remove('d-none');
                 document.getElementById('navLogout').classList.remove('d-none');
             }
             document.getElementById('navLogout').addEventListener('click', logout);
+            document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
+            document.getElementById('categoryFilter').addEventListener('change', function() {
+                loadVacancies(true);
+            });
+            document.getElementById('typeFilter').addEventListener('change', function() {
+                loadVacancies(true);
+            });
+            document.getElementById('searchInput').addEventListener('input', function() {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function() {
+                    loadVacancies(true);
+                }, 400);
+            });
             await loadCategories();
             await loadVacancies(true);
         });

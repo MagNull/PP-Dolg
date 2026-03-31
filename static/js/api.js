@@ -67,6 +67,12 @@ function logout() {
     window.location.href = "/login.html";
 }
 
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text ?? "";
+    return div.innerHTML;
+}
+
 // русские названия типов занятости
 function employmentTypeLabel(type) {
     var labels = {
@@ -75,4 +81,21 @@ function employmentTypeLabel(type) {
         'internship': 'Стажировка'
     };
     return labels[type] || type;
+}
+
+function applicationStatusClass(statusId) {
+    var classes = {
+        1: 'warning text-dark',
+        2: 'info text-dark',
+        3: 'success',
+        4: 'danger'
+    };
+    return classes[statusId] || 'secondary';
+}
+
+function applicationStatusText(statusId, statusName) {
+    if (statusId === 3) return 'Одобрено';
+    if (statusId === 4) return 'Отказ';
+    if (statusId === 2) return 'Просмотрено';
+    return statusName || 'Отклик отправлен';
 }

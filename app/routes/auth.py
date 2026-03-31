@@ -20,6 +20,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # схема OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(
+    tokenUrl="/api/auth/login", auto_error=False
+)
 
 router = APIRouter(prefix="/api/auth", tags=["Авторизация"])
 
@@ -56,6 +59,24 @@ def get_current_user(
         raise credentials_exception
 
     return user
+
+
+def get_current_user_optional(
+    token: str = Depends(oauth2_scheme_optional), db: Session = Depends(get_db)
+):
+    if not token:
+        return None
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if user_id is None:
+            return None
+        user_id = int(user_id)
+    except (JWTError, ValueError, TypeError):
+        return None
+
+    return db.query(User).filter(User.id == user_id).first()
 
 
 @router.post("/register", response_model=UserResponse)

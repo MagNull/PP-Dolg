@@ -3,15 +3,31 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.database import get_db
-from app.models import Vacancy, User
+from app.models import Vacancy, User, Application, Skill, VacancySkill
 from app.schemas import VacancyCreate, VacancyResponse, VacancyListResponse
-from app.routes.auth import get_current_user
+from app.routes.auth import get_current_user, get_current_user_optional
 
 router = APIRouter(prefix="/api/vacancies", tags=["vacancies"])
 
 
 # собираем ответ из модели вакансии
-def vacancy_to_response(v: Vacancy) -> VacancyResponse:
+def vacancy_to_response(v: Vacancy, db: Session, current_user=None) -> VacancyResponse:
+    my_status_id = None
+    my_status_name = None
+
+    if current_user and current_user.role == "student":
+        my_app = (
+            db.query(Application)
+            .filter(
+                Application.vacancy_id == v.id,
+                Application.user_id == current_user.id,
+            )
+            .first()
+        )
+        if my_app:
+            my_status_id = my_app.status_id
+            my_status_name = my_app.status.name if my_app.status else None
+
     return VacancyResponse(
         id=v.id,
         title=v.title,
@@ -24,7 +40,28 @@ def vacancy_to_response(v: Vacancy) -> VacancyResponse:
         employer_name=v.employer.company_name if v.employer else None,
         category_name=v.category.name if v.category else None,
         skills=[s.skill.name for s in v.skills] if v.skills else [],
+        my_status_id=my_status_id,
+        my_status_name=my_status_name,
     )
+
+
+def save_vacancy_skills(db: Session, vacancy: Vacancy, skill_ids):
+    vacancy.skills.clear()
+
+    if not skill_ids:
+        return
+
+    unique_skill_ids = []
+    for skill_id in skill_ids:
+        if skill_id not in unique_skill_ids:
+            unique_skill_ids.append(skill_id)
+
+    skills = db.query(Skill).filter(Skill.id.in_(unique_skill_ids)).all()
+    if len(skills) != len(unique_skill_ids):
+        raise HTTPException(status_code=400, detail="Некоторые навыки не найдены")
+
+    for skill_id in unique_skill_ids:
+        vacancy.skills.append(VacancySkill(skill_id=skill_id))
 
 
 # получаем список вакансий с фильтрами
@@ -37,6 +74,7 @@ def get_vacancies(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
 ):
     query = db.query(Vacancy)
 
@@ -53,17 +91,21 @@ def get_vacancies(
     total = query.count()
     vacancies = query.offset(skip).limit(limit).all()
     return VacancyListResponse(
-        items=[vacancy_to_response(v) for v in vacancies], total=total
+        items=[vacancy_to_response(v, db, current_user) for v in vacancies], total=total
     )
 
 
 # получаем вакансию по id
 @router.get("/{vacancy_id}", response_model=VacancyResponse)
-def get_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
+def get_vacancy(
+    vacancy_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
     vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id).first()
     if not vacancy:
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
-    return vacancy_to_response(vacancy)
+    return vacancy_to_response(vacancy, db, current_user)
 
 
 # создаём вакансию (только для работодателей)
@@ -93,10 +135,12 @@ def create_vacancy(
         salary_to=data.salary_to,
     )
     db.add(vacancy)
+    db.flush()
+    save_vacancy_skills(db, vacancy, data.skill_ids)
     db.commit()
     db.refresh(vacancy)
 
-    return vacancy_to_response(vacancy)
+    return vacancy_to_response(vacancy, db, current_user)
 
 
 # обновляем вакансию
@@ -123,10 +167,12 @@ def update_vacancy(
     vacancy.salary_from = data.salary_from
     vacancy.salary_to = data.salary_to
 
+    save_vacancy_skills(db, vacancy, data.skill_ids)
+
     db.commit()
     db.refresh(vacancy)
 
-    return vacancy_to_response(vacancy)
+    return vacancy_to_response(vacancy, db, current_user)
 
 
 # удаляем вакансию
