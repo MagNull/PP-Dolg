@@ -172,6 +172,7 @@ AGENTS.md
 .continue/
 .copilot/
 .github/copilot*
+.serena/
 CLAUDE.md
 claude.md
 
