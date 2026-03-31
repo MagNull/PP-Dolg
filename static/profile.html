@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .skill-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: #0d6efd;
+            color: white;
+            border-radius: 16px;
+            font-size: 14px;
+            margin: 0 6px 6px 0;
+        }
+        .skill-tag .remove-btn {
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+        .skill-tag .remove-btn:hover {
+            opacity: 1;
+        }
+        #vacSkillsDropdown.show {
+            display: block;
+        }
+        #vacSkillsDropdown .dropdown-item:hover,
+        #vacSkillsDropdown .dropdown-item:focus {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/index.html">Работа в кампусе</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="/index.html">Вакансии</a>
+                    <a class="nav-link" id="navLogin" href="/login.html">Войти</a>
+                    <a class="nav-link d-none" id="navProfile" href="/profile.html">Профиль</a>
+                    <a class="nav-link d-none" id="navLogout" href="#">Выйти</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Профиль</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="profileInfo"></div>
+                        
+                        <!-- Раздел студента -->
+                        <div id="studentSection" class="d-none mt-4">
+                            <h5>Мои заявки</h5>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr><th>Вакансия</th><th>Статус</th><th>Дата</th><th></th></tr>
+                                    </thead>
+                                    <tbody id="applicationsBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Раздел работодателя -->
+                        <div id="employerSection" class="d-none mt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>Мои вакансии и заявки</h5>
+                                <button type="button" class="btn btn-success" onclick="showCreateVacancyForm()">+ Создать вакансию</button>
+                            </div>
+                            
+                            <div id="createVacancyForm" class="card mb-4 d-none">
+                                <div class="card-body">
+                                    <h6>Новая вакансия</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Название <span class="text-danger">*</span></label>
+                                        <input type="text" id="vacTitle" class="form-control" placeholder="Например: Разработчик Python">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Описание <span class="text-danger">*</span></label>
+                                        <textarea id="vacDesc" class="form-control" rows="4" placeholder="Опишите требования и обязанности (минимум 10 символов)"></textarea>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Категория <span class="text-danger">*</span></label>
+                                            <select id="vacCategory" class="form-select">
+                                                <option value="">Выберите...</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Тип занятости <span class="text-danger">*</span></label>
+                                            <select id="vacType" class="form-select">
+                                                <option value="">Выберите...</option>
+                                                <option value="part_time">Частичная</option>
+                                                <option value="full_time">Полная</option>
+                                                <option value="internship">Стажировка</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Зарплата от (руб.)</label>
+                                            <input type="number" id="vacSalaryFrom" class="form-control" placeholder="необязательно">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Зарплата до (руб.)</label>
+                                            <input type="number" id="vacSalaryTo" class="form-control" placeholder="необязательно">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Навыки</label>
+                                        <div id="vacSkillsTags" class="mb-2"></div>
+                                        <div class="position-relative">
+                                            <input type="text" id="vacSkillsInput" class="form-control" placeholder="Начните вводить навык..." autocomplete="off">
+                                            <div id="vacSkillsDropdown" class="dropdown-menu w-100" style="max-height: 200px; overflow-y: auto;"></div>
+                                        </div>
+                                        <input type="hidden" id="vacSkillsIds">
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" onclick="createVacancy()">Создать</button>
+                                        <button type="button" class="btn btn-secondary" onclick="hideCreateVacancyForm()">Отмена</button>
+                                    </div>
+                                    <div id="vacError" class="alert alert-danger d-none mt-3"></div>
+                                    <div id="vacSuccess" class="alert alert-success d-none mt-3">Вакансия создана!</div>
+                                </div>
+                            </div>
+                            
+                            <div id="employerVacancies"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // если не залогинен — редирект
+            if (!isLoggedIn()) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            // обновляем navbar
+            document.getElementById('navLogin').classList.add('d-none');
+            document.getElementById('navProfile').classList.remove('d-none');
+            document.getElementById('navLogout').classList.remove('d-none');
+            document.getElementById('navLogout').addEventListener('click', logout);
+            
+            // загружаем данные пользователя
+            const user = await getCurrentUser();
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            // показываем профиль
+            document.getElementById('profileInfo').innerHTML =
+                '<h4>' + escapeHtml(user.name) + '</h4>' +
+                '<p class="text-muted">' + escapeHtml(user.email) + '</p>' +
+                '<p>Роль: ' + (user.role === 'student' ? 'Студент' : 'Работодатель') + '</p>';
+            
+            if (user.role === 'student') {
+                await loadStudentSection();
+            } else {
+                await loadEmployerSection(user);
+            }
+        });
+
+        function statusBadge(statusId, statusName) {
+            var colors = {1: 'warning', 2: 'info', 3: 'success', 4: 'danger'};
+            var color = colors[statusId] || 'secondary';
+            return '<span class="badge bg-' + color + '">' + escapeHtml(statusName || '') + '</span>';
+        }
+
+        async function loadStudentSection() {
+            document.getElementById('studentSection').classList.remove('d-none');
+            const resp = await apiRequest('/api/applications/my');
+            const apps = await resp.json();
+            const tbody = document.getElementById('applicationsBody');
+            
+            if (apps.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Нет заявок</td></tr>';
+                return;
+            }
+            
+            apps.forEach(function(a) {
+                tbody.innerHTML += '<tr>' +
+                    '<td><a href="/vacancy.html?id=' + a.vacancy_id + '">' + escapeHtml(a.vacancy_title || 'Вакансия') + '</a></td>' +
+                    '<td>' + statusBadge(a.status_id, a.status_name) + '</td>' +
+                    '<td>' + new Date(a.created_at).toLocaleDateString('ru-RU') + '</td>' +
+                    '<td><button class="btn btn-sm btn-outline-danger" onclick="deleteApp(' + a.id + ', this)">Отозвать</button></td>' +
+                    '</tr>';
+            });
+        }
+
+        async function deleteApp(id, btn) {
+            if (!confirm('Отозвать заявку?')) return;
+            const resp = await apiRequest('/api/applications/' + id, {method: 'DELETE'});
+            if (resp.ok) {
+                btn.closest('tr').remove();
+            }
+        }
+
+        async function loadEmployerSection(user) {
+            document.getElementById('employerSection').classList.remove('d-none');
+            const employerId = user.employer_id;
+            if (!employerId) {
+                document.getElementById('employerVacancies').innerHTML = '<p class="text-muted">Профиль работодателя не настроен</p>';
+                return;
+            }
+            document.getElementById('employerVacancies').dataset.employerId = employerId;
+
+            const resp = await apiRequest('/api/vacancies/?employer_id=' + employerId);
+            const data = await resp.json();
+            const vacancies = data.items || [];
+            const container = document.getElementById('employerVacancies');
+            container.innerHTML = '';
+            
+            if (vacancies.length === 0) {
+                container.innerHTML = '<p class="text-muted">Нет вакансий</p>';
+                return;
+            }
+            
+            for (const v of vacancies) {
+                const vacBlock = document.createElement('div');
+                vacBlock.className = 'card mb-3';
+                let vacHeader = '<div class="card-header d-flex justify-content-between align-items-center">' +
+                    '<a href="/vacancy.html?id=' + v.id + '">' + escapeHtml(v.title) + '</a>' +
+                    '<button class="btn btn-sm btn-outline-danger" onclick="deleteVacancy(' + v.id + ', this)">Удалить</button>' +
+                    '</div>';
+                vacBlock.innerHTML = vacHeader;
+
+                let cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+
+                const appResp = await apiRequest('/api/applications/vacancy/' + v.id);
+                const apps = await appResp.json();
+                
+                if (apps.length === 0) {
+                    cardBody.innerHTML = '<p class="text-muted small mb-0">Нет заявок</p>';
+                } else {
+                    let html = '';
+                    apps.forEach(function(a) {
+                        var sid = a.status_id || 1;
+                        html += '<div class="border rounded p-3 mb-2">' +
+                            '<div class="d-flex justify-content-between align-items-start">' +
+                            '<div>' +
+                            '<strong>' + escapeHtml(a.user_name || 'Студент') + '</strong>' +
+                            '<br><small class="text-muted">' + escapeHtml(a.user_email || '') + '</small>';
+                        if (a.user_faculty) {
+                            html += '<br><small class="text-muted">Факультет: ' + escapeHtml(a.user_faculty) + '</small>';
+                        }
+                        html += '</div>' +
+                            '<div>' + statusBadge(sid, a.status_name) + '</div>' +
+                            '</div>';
+                        if (a.cover_letter) {
+                            html += '<div class="mt-2 p-2 bg-light rounded"><small>' + escapeHtml(a.cover_letter) + '</small></div>';
+                        }
+                        html += '<div class="mt-2 d-flex gap-2">';
+                        if (sid !== 3) {
+                            html += '<button class="btn btn-sm btn-success" onclick="updateStatus(' + a.id + ', 3, this)">Принять</button>';
+                        }
+                        if (sid !== 4) {
+                            html += '<button class="btn btn-sm btn-danger" onclick="updateStatus(' + a.id + ', 4, this)">Отклонить</button>';
+                        }
+                        if (sid !== 2 && sid !== 3 && sid !== 4) {
+                            html += '<button class="btn btn-sm btn-outline-info" onclick="updateStatus(' + a.id + ', 2, this)">Просмотрено</button>';
+                        }
+                        html += '</div></div>';
+                    });
+                    cardBody.innerHTML = html;
+                }
+                vacBlock.appendChild(cardBody);
+                container.appendChild(vacBlock);
+            }
+        }
+
+        async function updateStatus(appId, statusId, btn) {
+            const resp = await apiRequest('/api/applications/' + appId + '/status', {
+                method: 'PUT',
+                body: JSON.stringify({status_id: parseInt(statusId, 10)})
+            });
+            if (resp.ok) {
+                const user = await getCurrentUser();
+                loadEmployerSection(user);
+            }
+        }
+
+        async function deleteVacancy(vacId, btn) {
+            if (!confirm('Удалить вакансию?')) return;
+            const resp = await apiRequest('/api/vacancies/' + vacId, {method: 'DELETE'});
+            if (resp.ok) {
+                const user = await getCurrentUser();
+                loadEmployerSection(user);
+            }
+        }
+
+        // показываем форму создания вакансии и загружаем категории
+        async function showCreateVacancyForm() {
+            document.getElementById('createVacancyForm').classList.remove('d-none');
+            // загружаем категории если ещё не загружены
+            const sel = document.getElementById('vacCategory');
+            if (sel.options.length <= 1) {
+                const resp = await apiRequest('/api/categories');
+                const cats = await resp.json();
+                cats.forEach(function(c) {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    sel.appendChild(opt);
+                });
+            }
+
+            // загружаем навыки для тег-селектора
+            await initSkillsSelector();
+        }
+
+        // данные навыков для селектора
+        let allSkills = [];
+        let selectedSkills = [];
+
+        // инициализация селектора навыков
+        async function initSkillsSelector() {
+            if (allSkills.length === 0) {
+                const resp = await apiRequest('/api/skills');
+                allSkills = await resp.json();
+            }
+
+            const input = document.getElementById('vacSkillsInput');
+            const dropdown = document.getElementById('vacSkillsDropdown');
+
+            // показываем dropdown при фокусе
+            input.addEventListener('focus', function() {
+                showSkillsDropdown();
+            });
+
+            // фильтруем при вводе
+            input.addEventListener('input', function() {
+                showSkillsDropdown(this.value);
+            });
+
+            // скрываем dropdown при клике вне
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
+
+        // показываем dropdown с навыками
+        function showSkillsDropdown(filter) {
+            const dropdown = document.getElementById('vacSkillsDropdown');
+            const filterLower = filter ? filter.toLowerCase() : '';
+
+            // фильтруем навыки: не выбранные и подходящие под поиск
+            const availableSkills = allSkills.filter(function(skill) {
+                const notSelected = !selectedSkills.find(function(s) { return s.id === skill.id; });
+                const matchesFilter = !filterLower || skill.name.toLowerCase().includes(filterLower);
+                return notSelected && matchesFilter;
+            });
+
+            if (availableSkills.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item text-muted">Ничего не найдено</div>';
+            } else {
+                dropdown.innerHTML = availableSkills.map(function(skill) {
+                    return '<div class="dropdown-item" onclick="addSkillTag(' + skill.id + ', \'' + escapeHtml(skill.name) + '\')">' + escapeHtml(skill.name) + '</div>';
+                }).join('');
+            }
+
+            dropdown.classList.add('show');
+        }
+
+        // добавляем тег навыка
+        function addSkillTag(skillId, skillName) {
+            if (selectedSkills.find(function(s) { return s.id === skillId; })) {
+                return; // уже выбран
+            }
+
+            selectedSkills.push({ id: skillId, name: skillName });
+            renderSkillTags();
+
+            // очищаем поле и скрываем dropdown
+            document.getElementById('vacSkillsInput').value = '';
+            document.getElementById('vacSkillsDropdown').classList.remove('show');
+        }
+
+        // удаляем тег навыка
+        function removeSkillTag(skillId) {
+            selectedSkills = selectedSkills.filter(function(s) { return s.id !== skillId; });
+            renderSkillTags();
+        }
+
+        // отрисовываем теги
+        function renderSkillTags() {
+            const container = document.getElementById('vacSkillsTags');
+            if (selectedSkills.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = selectedSkills.map(function(skill) {
+                return '<span class="skill-tag">' + escapeHtml(skill.name) + '<span class="remove-btn" onclick="removeSkillTag(' + skill.id + ')">&times;</span></span>';
+            }).join('');
+        }
+
+        // очищаем все выбранные навыки
+        function clearSelectedSkills() {
+            selectedSkills = [];
+            renderSkillTags();
+        }
+
+        function hideCreateVacancyForm() {
+            document.getElementById('createVacancyForm').classList.add('d-none');
+            document.getElementById('vacError').classList.add('d-none');
+            document.getElementById('vacSuccess').classList.add('d-none');
+        }
+
+        async function createVacancy() {
+            const title = document.getElementById('vacTitle').value.trim();
+            const description = document.getElementById('vacDesc').value.trim();
+            const category_id = parseInt(document.getElementById('vacCategory').value, 10);
+            const employment_type = document.getElementById('vacType').value;
+            const salary_from = document.getElementById('vacSalaryFrom').value;
+            const salary_to = document.getElementById('vacSalaryTo').value;
+            const skill_ids = selectedSkills.map(function(s) { return s.id; });
+
+            const errDiv = document.getElementById('vacError');
+            const successDiv = document.getElementById('vacSuccess');
+
+            // валидация с конкретными сообщениями
+            if (!title) {
+                errDiv.textContent = 'Укажите название вакансии';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacTitle').focus();
+                return;
+            }
+            if (title.length < 3) {
+                errDiv.textContent = 'Название вакансии должно содержать минимум 3 символа';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacTitle').focus();
+                return;
+            }
+            if (!description) {
+                errDiv.textContent = 'Укажите описание вакансии';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacDesc').focus();
+                return;
+            }
+            if (description.length < 10) {
+                errDiv.textContent = 'Описание должно содержать минимум 10 символов';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacDesc').focus();
+                return;
+            }
+            if (!category_id) {
+                errDiv.textContent = 'Выберите категорию';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacCategory').focus();
+                return;
+            }
+            if (!employment_type) {
+                errDiv.textContent = 'Выберите тип занятости';
+                errDiv.classList.remove('d-none');
+                document.getElementById('vacType').focus();
+                return;
+            }
+
+            const data = {
+                title: title,
+                description: description,
+                category_id: category_id,
+                employment_type: employment_type,
+                salary_from: salary_from ? parseInt(salary_from, 10) : null,
+                salary_to: salary_to ? parseInt(salary_to, 10) : null,
+                skill_ids: skill_ids
+            };
+
+            const resp = await apiRequest('/api/vacancies/', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            if (resp.ok) {
+                errDiv.classList.add('d-none');
+                successDiv.classList.remove('d-none');
+                // очищаем форму
+                document.getElementById('vacTitle').value = '';
+                document.getElementById('vacDesc').value = '';
+                document.getElementById('vacCategory').value = '';
+                document.getElementById('vacType').value = '';
+                document.getElementById('vacSalaryFrom').value = '';
+                document.getElementById('vacSalaryTo').value = '';
+                clearSelectedSkills();
+                // скрываем форму через 2 секунды и обновляем список
+                setTimeout(function() {
+                    hideCreateVacancyForm();
+                    loadEmployerSection({employer_id: document.getElementById('employerVacancies').dataset.employerId});
+                }, 1500);
+            } else {
+                const err = await resp.json();
+                let msg = 'Ошибка при создании вакансии';
+                // обрабатываем ошибки валидации от Pydantic
+                if (err.detail && Array.isArray(err.detail)) {
+                    const errors = [];
+                    for (const e of err.detail) {
+                        const field = e.loc && e.loc[e.loc.length - 1];
+                        if (field === 'title') {
+                            errors.push('Название: ' + (e.msg.includes('short') ? 'минимум 3 символа' : e.msg));
+                        } else if (field === 'description') {
+                            errors.push('Описание: ' + (e.msg.includes('short') ? 'минимум 10 символов' : e.msg));
+                        } else if (field === 'category_id') {
+                            errors.push('Выберите категорию');
+                        } else if (field === 'employment_type') {
+                            errors.push('Выберите тип занятости');
+                        } else if (field === 'salary_from' || field === 'salary_to') {
+                            errors.push('Зарплата: ' + e.msg);
+                        } else {
+                            errors.push(e.msg);
+                        }
+                    }
+                    if (errors.length > 0) {
+                        msg = errors.join('; ');
+                    }
+                } else if (typeof err.detail === 'string') {
+                    msg = err.detail;
+                }
+                errDiv.textContent = msg;
+                errDiv.classList.remove('d-none');
+            }
+        }
+    </script>
+</body>
+</html>

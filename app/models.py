@@ -11,7 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from database import Base, engine
+from app.database import Base, engine
 
 # модели базы данных
 
@@ -97,9 +97,15 @@ class Vacancy(Base):
 
     employer = relationship("Employer", back_populates="vacancies")
     category = relationship("Category", back_populates="vacancies")
-    skills = relationship("VacancySkill", back_populates="vacancy")
-    applications = relationship("Application", back_populates="vacancy")
-    reviews = relationship("Review", back_populates="vacancy")
+    skills = relationship(
+        "VacancySkill", back_populates="vacancy", cascade="all, delete-orphan"
+    )
+    applications = relationship(
+        "Application", back_populates="vacancy", cascade="all, delete-orphan"
+    )
+    reviews = relationship(
+        "Review", back_populates="vacancy", cascade="all, delete-orphan"
+    )
 
 
 class VacancySkill(Base):
@@ -168,7 +174,3 @@ class Review(Base):
 
     user = relationship("User", back_populates="reviews")
     vacancy = relationship("Vacancy", back_populates="reviews")
-
-
-# создаём таблицы
-Base.metadata.create_all(bind=engine)
