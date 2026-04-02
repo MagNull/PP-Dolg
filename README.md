@@ -32,7 +32,7 @@ http://localhost:8000
 
 ```bash
 source .venv/bin/activate
-rtk pytest tests/ -v --tb=short
+pytest tests/ -v --tb=short
 ```
 
 ## Что есть в проекте
