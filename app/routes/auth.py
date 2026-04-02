@@ -144,8 +144,10 @@ def login(
 def get_me(current_user: User = Depends(get_current_user)):
     # получаем employer_id если пользователь работодатель
     employer_id = None
+    company_name = None
     if current_user.role == "employer" and current_user.employer:
         employer_id = current_user.employer.id
+        company_name = current_user.employer.company_name
 
     return UserResponse(
         id=current_user.id,
@@ -155,4 +157,5 @@ def get_me(current_user: User = Depends(get_current_user)):
         faculty_id=current_user.faculty_id,
         created_at=current_user.created_at,
         employer_id=employer_id,
+        company_name=company_name,
     )

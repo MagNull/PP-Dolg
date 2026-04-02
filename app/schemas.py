@@ -24,6 +24,7 @@ class UserResponse(BaseModel):
     faculty_id: Optional[int]
     created_at: datetime
     employer_id: Optional[int] = None
+    company_name: Optional[str] = None
 
 
 class Token(BaseModel):

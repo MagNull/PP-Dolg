@@ -82,12 +82,15 @@
                         <div id="employerSection" class="d-none mt-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5>Мои вакансии и заявки</h5>
-                                <button type="button" class="btn btn-success" onclick="showCreateVacancyForm()">+ Создать вакансию</button>
+                                <button type="button" id="toggleVacancyFormBtn" class="btn btn-success" onclick="toggleCreateVacancyForm()" aria-expanded="false">+ Создать вакансию</button>
                             </div>
                             
                             <div id="createVacancyForm" class="card mb-4 d-none">
                                 <div class="card-body">
-                                    <h6>Новая вакансия</h6>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0">Новая вакансия</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideCreateVacancyForm()">Свернуть форму</button>
+                                    </div>
                                     <div class="mb-3">
                                         <label class="form-label">Название <span class="text-danger">*</span></label>
                                         <input type="text" id="vacTitle" class="form-control" placeholder="Например: Разработчик Python">
@@ -182,7 +185,8 @@
             document.getElementById('profileInfo').innerHTML =
                 '<h4>' + escapeHtml(user.name) + '</h4>' +
                 '<p class="text-muted">' + escapeHtml(user.email) + '</p>' +
-                '<p>Роль: ' + (user.role === 'student' ? 'Студент' : 'Работодатель') + '</p>';
+                '<p>Роль: ' + (user.role === 'student' ? 'Студент' : 'Работодатель') + '</p>' +
+                (user.role === 'employer' && user.company_name ? '<p><strong>Компания:</strong> ' + escapeHtml(user.company_name) + '</p>' : '');
             
             if (user.role === 'student') {
                 await loadStudentSection();
@@ -320,9 +324,20 @@
             }
         }
 
+        function updateVacancyFormToggleButton(isOpen) {
+            const button = document.getElementById('toggleVacancyFormBtn');
+            button.classList.toggle('btn-success', !isOpen);
+            button.classList.toggle('btn-outline-secondary', isOpen);
+            button.textContent = isOpen ? '− Свернуть форму' : '+ Создать вакансию';
+            button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+
         // показываем форму создания вакансии и загружаем категории
         async function showCreateVacancyForm() {
-            document.getElementById('createVacancyForm').classList.remove('d-none');
+            const form = document.getElementById('createVacancyForm');
+            form.classList.remove('d-none');
+            updateVacancyFormToggleButton(true);
+            form.scrollIntoView({behavior: 'smooth', block: 'start'});
             // загружаем категории если ещё не загружены
             const sel = document.getElementById('vacCategory');
             if (sel.options.length <= 1) {
@@ -338,6 +353,15 @@
 
             // загружаем навыки для тег-селектора
             await initSkillsSelector();
+        }
+
+        function toggleCreateVacancyForm() {
+            const form = document.getElementById('createVacancyForm');
+            if (form.classList.contains('d-none')) {
+                showCreateVacancyForm();
+                return;
+            }
+            hideCreateVacancyForm();
         }
 
         // данные навыков для селектора
@@ -436,6 +460,7 @@
 
         function hideCreateVacancyForm() {
             document.getElementById('createVacancyForm').classList.add('d-none');
+            updateVacancyFormToggleButton(false);
             document.getElementById('vacError').classList.add('d-none');
             document.getElementById('vacSuccess').classList.add('d-none');
         }
