@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import Optional
 
+from app.config import DEFAULT_PAGE_LIMIT, ROLE_STUDENT, ROLE_EMPLOYER
 from app.database import get_db
 from app.models import Vacancy, User, Application, Skill, VacancySkill
 from app.schemas import VacancyCreate, VacancyResponse, VacancyListResponse
@@ -15,7 +16,7 @@ def vacancy_to_response(v: Vacancy, db: Session, current_user=None) -> VacancyRe
     my_status_id = None
     my_status_name = None
 
-    if current_user and current_user.role == "student":
+    if current_user and current_user.role == ROLE_STUDENT:
         my_app = (
             db.query(Application)
             .filter(
@@ -72,7 +73,7 @@ def get_vacancies(
     employer_id: Optional[int] = None,
     search: Optional[str] = None,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = DEFAULT_PAGE_LIMIT,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user_optional),
 ):
@@ -116,7 +117,7 @@ def create_vacancy(
     current_user: User = Depends(get_current_user),
 ):
     # проверяем что пользователь — работодатель
-    if current_user.role != "employer":
+    if current_user.role != ROLE_EMPLOYER:
         raise HTTPException(
             status_code=403, detail="Только работодатели могут создавать вакансии"
         )

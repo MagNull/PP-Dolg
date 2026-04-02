@@ -7,8 +7,10 @@ from fastapi.exceptions import RequestValidationError
 # подключаем роутеры
 from app.routes import auth, vacancies, applications, catalog
 
+from app.config import APP_TITLE, STATIC_DIR, MIN_PASSWORD_LENGTH, MIN_NAME_LENGTH
+
 # создаём приложение
-app = FastAPI(title="Работа в кампусе")
+app = FastAPI(title=APP_TITLE)
 
 
 # обработчик ошибок валидации — возвращаем понятные сообщения
@@ -18,11 +20,13 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
     for err in exc.errors():
         # собираем путь к полю (пропускаем "body")
         field = " → ".join(str(loc) for loc in err["loc"] if loc != "body")
-        errors.append({
-            "поле": field,
-            "сообщение": err["msg"],
-            "тип_ошибки": err["type"],
-        })
+        errors.append(
+            {
+                "поле": field,
+                "сообщение": err["msg"],
+                "тип_ошибки": err["type"],
+            }
+        )
 
     detail = "Проверьте введённые данные"
     if errors:
@@ -33,9 +37,9 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
         if field == "email":
             detail = "Введите корректный email"
         elif field == "password" and "too_short" in error_type:
-            detail = "Пароль должен быть не короче 6 символов"
+            detail = f"Пароль должен быть не короче {MIN_PASSWORD_LENGTH} символов"
         elif field == "name" and "too_short" in error_type:
-            detail = "Имя должно быть не короче 2 символов"
+            detail = f"Имя должно быть не короче {MIN_NAME_LENGTH} символов"
         elif "missing" in error_type:
             if field:
                 detail = f"Заполните поле: {field}"
@@ -58,10 +62,10 @@ app.include_router(applications.router)
 app.include_router(catalog.router)
 
 # создаём директорию для статики если её нет
-os.makedirs("static", exist_ok=True)
+os.makedirs(STATIC_DIR, exist_ok=True)
 
 # раздаём статику
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
 
 # создаём таблицы и заполняем БД при запуске

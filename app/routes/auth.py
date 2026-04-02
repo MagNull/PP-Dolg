@@ -6,17 +6,18 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+from app.config import (
+    SECRET_KEY,
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    PWD_HASH_SCHEME,
+)
 from app.database import get_db
 from app.models import User, Employer
 from app.schemas import UserCreate, UserResponse, Token
 
-# настройки JWT
-SECRET_KEY = "секретный-ключ-для-jwt"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 часа
-
 # хеширование паролей
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=[PWD_HASH_SCHEME], deprecated="auto")
 
 # схема OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
