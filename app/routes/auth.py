@@ -6,17 +6,18 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+from app.config import (
+    SECRET_KEY,
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    PWD_HASH_SCHEME,
+)
 from app.database import get_db
 from app.models import User, Employer
 from app.schemas import UserCreate, UserResponse, Token
 
-# настройки JWT
-SECRET_KEY = "секретный-ключ-для-jwt"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 часа
-
 # хеширование паролей
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=[PWD_HASH_SCHEME], deprecated="auto")
 
 # схема OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -144,8 +145,10 @@ def login(
 def get_me(current_user: User = Depends(get_current_user)):
     # получаем employer_id если пользователь работодатель
     employer_id = None
+    company_name = None
     if current_user.role == "employer" and current_user.employer:
         employer_id = current_user.employer.id
+        company_name = current_user.employer.company_name
 
     return UserResponse(
         id=current_user.id,
@@ -155,4 +158,5 @@ def get_me(current_user: User = Depends(get_current_user)):
         faculty_id=current_user.faculty_id,
         created_at=current_user.created_at,
         employer_id=employer_id,
+        company_name=company_name,
     )

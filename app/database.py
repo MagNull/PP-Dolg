@@ -2,12 +2,9 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# подключение к базе данных
-SQLALCHEMY_DATABASE_URL = "sqlite:///./campus_jobs.db"
+from app.config import DATABASE_URL
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 
 # включаем проверку внешних ключей и WAL режим

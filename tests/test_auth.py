@@ -107,3 +107,28 @@ def test_me_unauthorized(client):
     """без токена — 401"""
     resp = client.get("/api/auth/me")
     assert resp.status_code == 401
+
+
+def test_me_employer_returns_company_name(client):
+    client.post(
+        "/api/auth/register",
+        json={
+            "name": "ООО Кампус",
+            "email": "hr@example.com",
+            "password": "strongpass",
+            "role": "employer",
+            "company_name": "Кампус Лабс",
+        },
+    )
+
+    login_resp = client.post(
+        "/api/auth/login",
+        data={"username": "hr@example.com", "password": "strongpass"},
+    )
+    token = login_resp.json()["access_token"]
+
+    resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["role"] == "employer"
+    assert data["company_name"] == "Кампус Лабс"

@@ -330,3 +330,30 @@ def test_create_vacancy_saves_selected_skills(client, employer_token):
 def test_profile_page_has_skill_field_for_vacancy_form():
     page = Path("static/profile.html").read_text(encoding="utf-8")
     assert 'id="vacSkillsInput"' in page
+
+
+def test_profile_page_has_collapsible_vacancy_form_controls():
+    page = Path("static/profile.html").read_text(encoding="utf-8")
+    assert 'id="toggleVacancyFormBtn"' in page
+    assert 'id="createVacancyForm"' in page
+    assert "Свернуть форму" in page
+
+
+def test_profile_page_scrolls_to_form_and_updates_toggle_state():
+    page = Path("static/profile.html").read_text(encoding="utf-8")
+    assert "scrollIntoView" in page
+    assert "toggleVacancyFormBtn" in page
+    assert "btn-outline-secondary" in page
+    assert "btn-success" in page
+
+
+def test_profile_page_has_single_collapse_control_for_vacancy_form():
+    page = Path("static/profile.html").read_text(encoding="utf-8")
+    assert page.count('onclick="hideCreateVacancyForm()"') == 1
+
+
+def test_profile_page_formats_role_and_company_differently():
+    page = Path("static/profile.html").read_text(encoding="utf-8")
+    assert "'<p><strong>Роль:</strong> ' +" in page
+    assert "'<p><strong>Компания:</strong> ' +" in page
+    assert 'fw-bold">Компания:' not in page

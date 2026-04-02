@@ -2,16 +2,44 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator
 from typing import Optional, Literal
 from datetime import datetime
 
-# схемы валидации данных
+from app.config import (
+    MIN_PASSWORD_LENGTH,
+    MAX_PASSWORD_LENGTH,
+    MIN_NAME_LENGTH,
+    MAX_NAME_LENGTH,
+    MIN_COMPANY_NAME_LENGTH,
+    MAX_COMPANY_NAME_LENGTH,
+    ROLE_STUDENT,
+    ROLE_EMPLOYER,
+    EMPLOYMENT_TYPE_INTERNSHIP,
+    EMPLOYMENT_TYPE_PART_TIME,
+    EMPLOYMENT_TYPE_FULL_TIME,
+    MIN_VACANCY_TITLE_LENGTH,
+    MAX_VACANCY_TITLE_LENGTH,
+    MIN_VACANCY_DESCRIPTION_LENGTH,
+    MAX_VACANCY_DESCRIPTION_LENGTH,
+    MAX_SALARY,
+    MAX_COVER_LETTER_LENGTH,
+    MIN_REVIEW_TEXT_LENGTH,
+    MAX_REVIEW_TEXT_LENGTH,
+    MIN_RATING,
+    MAX_RATING,
+)
 
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=6, max_length=100)
-    name: str = Field(min_length=2, max_length=100)
+    password: str = Field(
+        min_length=MIN_PASSWORD_LENGTH, max_length=MAX_PASSWORD_LENGTH
+    )
+    name: str = Field(min_length=MIN_NAME_LENGTH, max_length=MAX_NAME_LENGTH)
     faculty_id: Optional[int] = Field(default=None, ge=1)
-    role: Literal["student", "employer"] = "student"
-    company_name: Optional[str] = Field(default=None, min_length=2, max_length=200)
+    role: Literal[ROLE_STUDENT, ROLE_EMPLOYER] = ROLE_STUDENT
+    company_name: Optional[str] = Field(
+        default=None,
+        min_length=MIN_COMPANY_NAME_LENGTH,
+        max_length=MAX_COMPANY_NAME_LENGTH,
+    )
 
 
 class UserResponse(BaseModel):
@@ -24,6 +52,7 @@ class UserResponse(BaseModel):
     faculty_id: Optional[int]
     created_at: datetime
     employer_id: Optional[int] = None
+    company_name: Optional[str] = None
 
 
 class Token(BaseModel):
@@ -32,13 +61,22 @@ class Token(BaseModel):
 
 
 class VacancyCreate(BaseModel):
-    title: str = Field(min_length=3, max_length=200)
-    description: str = Field(min_length=10, max_length=5000)
+    title: str = Field(
+        min_length=MIN_VACANCY_TITLE_LENGTH, max_length=MAX_VACANCY_TITLE_LENGTH
+    )
+    description: str = Field(
+        min_length=MIN_VACANCY_DESCRIPTION_LENGTH,
+        max_length=MAX_VACANCY_DESCRIPTION_LENGTH,
+    )
     employer_id: Optional[int] = None  # берётся из JWT, не обязательно
     category_id: int = Field(ge=1)
-    employment_type: Literal["internship", "part_time", "full_time"]
-    salary_from: Optional[int] = Field(default=None, ge=0, le=1000000)
-    salary_to: Optional[int] = Field(default=None, ge=0, le=1000000)
+    employment_type: Literal[
+        EMPLOYMENT_TYPE_INTERNSHIP,
+        EMPLOYMENT_TYPE_PART_TIME,
+        EMPLOYMENT_TYPE_FULL_TIME,
+    ]
+    salary_from: Optional[int] = Field(default=None, ge=0, le=MAX_SALARY)
+    salary_to: Optional[int] = Field(default=None, ge=0, le=MAX_SALARY)
     skill_ids: Optional[list[int]] = None
 
     # проверяем что salary_to >= salary_from
@@ -72,7 +110,9 @@ class VacancyResponse(BaseModel):
 
 class ApplicationCreate(BaseModel):
     vacancy_id: int = Field(ge=1)
-    cover_letter: Optional[str] = Field(default=None, max_length=2000)
+    cover_letter: Optional[str] = Field(
+        default=None, max_length=MAX_COVER_LETTER_LENGTH
+    )
 
 
 class ApplicationResponse(BaseModel):
@@ -92,8 +132,10 @@ class ApplicationResponse(BaseModel):
 
 class ReviewCreate(BaseModel):
     vacancy_id: int = Field(ge=1)
-    rating: int = Field(ge=1, le=5)
-    text: str = Field(min_length=5, max_length=1000)
+    rating: int = Field(ge=MIN_RATING, le=MAX_RATING)
+    text: str = Field(
+        min_length=MIN_REVIEW_TEXT_LENGTH, max_length=MAX_REVIEW_TEXT_LENGTH
+    )
 
 
 class ReviewResponse(BaseModel):

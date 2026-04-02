@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.config import MIN_STATUS_ID, MAX_STATUS_ID, ROLE_STUDENT, ROLE_EMPLOYER
 from app.database import get_db
 from app.models import Application, ApplicationStatus, Vacancy
 from app.schemas import ApplicationCreate, ApplicationResponse
@@ -12,7 +13,7 @@ router = APIRouter(prefix="/api/applications", tags=["Заявки"])
 
 # схема для обновления статуса
 class StatusUpdate(BaseModel):
-    status_id: int = Field(ge=1, le=10)
+    status_id: int = Field(ge=MIN_STATUS_ID, le=MAX_STATUS_ID)
 
 
 # преобразуем заявку в ответ
@@ -39,7 +40,7 @@ def create_application(
     current_user=Depends(get_current_user),
 ):
     # только студенты могут подавать заявки
-    if current_user.role != "student":
+    if current_user.role != ROLE_STUDENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Только студенты могут подавать заявки",
@@ -107,7 +108,7 @@ def get_vacancy_applications(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.role != "employer":
+    if current_user.role != ROLE_EMPLOYER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Только работодатели могут просматривать заявки на вакансии",
@@ -125,7 +126,7 @@ def update_application_status(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.role != "employer":
+    if current_user.role != ROLE_EMPLOYER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Только работодатели могут менять статус заявки",
@@ -165,7 +166,7 @@ def delete_application(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.role != "student":
+    if current_user.role != ROLE_STUDENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Только студенты могут удалять заявки",
